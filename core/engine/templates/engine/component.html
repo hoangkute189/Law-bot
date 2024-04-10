@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LawChat</title>
+    <link
+      href="https://unpkg.com/tailwindcss@1.9.6/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+      integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <style>
+    html {
+      --color-black: #000;
+      --color-lightBlack: #40414f;
+      --color-white: #fff;
+      --color-gray: #666;
+      --color-green: #19c37d;
+      --color-blue: #667eea;
+      scroll-behavior: smooth;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loader {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid var(--color-blue);
+      border-radius: 50%;
+      min-width: 50px;
+      min-height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    button:focus {
+      outline: none;
+    }
+
+    .accordion:hover {
+      color: darkturquoise;
+    }
+    .accordion.active {
+      color: darkturquoise;
+    }
+    .conversation-title {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      margin-left: 16px;
+      width: 120px;
+      overflow: hidden;
+      text-align: left;
+    }
+    .example {
+      height: 300px;
+      overflow-y: scroll;
+      max-width: 700px;
+      width: max-content;
+    }
+    .example li {
+      width: 100%;
+      cursor: pointer;
+    }
+  </style>
+  <body
+    class="h-screen overflow-hidden flex items-center justify-center"
+    style="background: #edf2f7"
+  >
+    <div class="flex h-screen antialiased text-gray-800 w-full">
+      <div class="flex flex-row h-full w-full overflow-x-hidden">
+        <div
+          class="flex flex-col py-8 pl-6 pr-2 w-64 bg-white flex-shrink-0 sidebar-layout"
+        >
+          <div class="flex flex-row items-center justify-center h-12 w-full">
+            <div
+              class="flex items-center justify-center rounded-2xl text-indigo-700 bg-indigo-100 h-10 w-10"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                ></path>
+              </svg>
+            </div>
+            <div class="ml-2 font-bold text-2xl">LawChat</div>
+          </div>
+          <div
+            class="flex flex-col items-center bg-indigo-100 border border-gray-200 mt-4 w-full py-6 px-4 rounded-lg"
+          >
+            <div class="text-sm font-semibold mt-2">CHUYÊN ĐỀ NGHIÊN CỨU</div>
+            <div class="text-sm font-semibold mt-2">2023-2024</div>
+            <div class="text-xs text-gray-700">Dương Trọng Chí - 52000742</div>
+            <div class="text-xs text-gray-700">Trần Gia Hoàng - 52000759</div>
+            <div class="h-20 w-20 rounded-full border overflow-hidden">
+              <img
+                src="{% static 'images/tdtu.jpeg' %}"
+                alt="Avatar"
+                class="h-full w-full"
+              />
+            </div>
+            <div class="text-sm font-semibold mt-2">Example User</div>
+            <div class="text-xs text-gray-500"></div>
+            <div class="flex flex-row items-center mt-3">
+              <a
+                href="{% url 'logout-page' %}"
+                class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 rounded-full border border-blue-500 hover:border-transparent rounded"
+              >
+                Đăng xuất
+              </a>
+            </div>
+          </div>
+          {% comment %} history chat {% endcomment %}
+          <div class="flex flex-col mt-2 history-layout">
+            {% comment %} new chat {% endcomment %}
+            <div class="flex flex-col space-y-1 mt-2 -mx-2 mb-2">
+              <button
+                class="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+                onclick="resetChat()"
+              >
+                <div
+                  class="flex items-center justify-center h-8 w-8 bg-indigo-200 rounded-full"
+                >
+                  <i class="fa-solid fa-plus"></i>
+                </div>
+                <div class="ml-2 text-sm font-semibold">New chat</div>
+              </button>
+            </div>
+
+            <div
+              class="flex flex-row items-center justify-between text-xs history-title"
+            >
+              <span class="font-bold">Recent</span>
+              <span
+                class="flex items-center justify-center bg-gray-300 h-4 w-4 rounded-full conversations-size"
+                >4</span
+              >
+            </div>
+
+            {% comment %} conversations {% endcomment %}
+            <div
+              class="flex flex-col space-y-1 mt-4 -mx-2 h-48 overflow-y-auto conversation-list"
+            >
+              {% comment %}
+              <div class="flex flex-row items-center">
+                <button
+                  class="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+                >
+                  <div
+                    class="flex items-center justify-center h-8 w-8 bg-gray-200 rounded-full"
+                  >
+                    <i class="fa-solid fa-message"></i>
+                  </div>
+                  <div class="ml-2 text-sm font-semibold conversation-title">
+                    Quy định về thương mại ở nông thôn
+                  </div>
+                </button>
+                <button class="ml-2 text-sm font-semibold text-red">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              {% endcomment %}
+            </div>
+          </div>
+        </div>
+        {% comment %} Conversation Layout {% endcomment %}
+        <div class="flex flex-col flex-auto h-full p-6 conversation-layout">
+          <div
+            class="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4 conversation-container"
+          >
+            <div
+              class="flex flex-col h-full overflow-x-auto mb-4 conversation-message-layout"
+            >
+              <div class="flex flex-col h-full conversation-message-container">
+                {% comment %} message list
+                ....................................{% endcomment %}
+                <div
+                  class="grid grid-cols-12 gap-y-2 conversation-message-list"
+                >
+                  {% comment %}
+                  <div
+                    class="col-start-1 col-end-8 p-3 rounded-lg conversation-message-box ai-box"
+                  >
+                    <div class="flex flex-row">
+                      <div
+                        class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0"
+                      >
+                        <i class="fa-solid fa-robot"></i>
+                      </div>
+                      <div
+                        class="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl"
+                      >
+                        <div>
+                          Xin chào tôi là law chat - trợ lý ảo có thể giúp bạn
+                          giải đáp các câu hỏi liên quan đến pháp luật, các
+                          thông tin được trích xuất từ văn bản luật. Bạn cần tôi
+                          giúp gì nào?
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endcomment %}
+                </div>
+              </div>
+            </div>
+            <div
+              class="flex flex-row items-center h-16 rounded-xl bg-white w-full px-4 chat-input-container"
+            >
+              <div class="relative">
+                <div
+                  class="absolute bottom-0 bg-white p-5 mb-10 w-auto h-96 example hidden"
+                >
+                  <ul>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Xin chào, cho tôi hỏi bạn là ai?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Thời hạn của hợp đồng dầu khí là bao nhiêu năm?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Hình thức đại lý hoa hồng theo quy định là gì?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Hợp đồng theo mẫu là gì?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Trộm cắp điện là hành vi gì?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Tôi đang có nhu cầu muốn mở tiệm net để kinh doanh thì
+                      theo quy định tôi cần làm gì?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Nếu tôi không có trách nhiệm đóng tiền điện trong nhiều
+                      tháng liên tiếp thì tôi có bị xử lý gì không?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Tôi sẽ bị xử phạt thế nào nếu tôi lỡ kinh doanh buôn bán
+                      không có giấy phép vệ sinh an toàn thực phẩm?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Tôi là chủ của nhà hàng 5 sao chuyên phục vụ các món hải
+                      sản địa phương, nhưng tôi bị chủ của nhà hàng kế bên tùy
+                      tiện giở chiêu trò bôi nhọ nhà hàng tôi và khiến cho nhà
+                      hàng tôi thua lỗ nặng. Vậy tôi có nên kiện họ không?
+                    </li>
+                    <li
+                      class="bg-indigo-100 px-8 py-2 my-2 rounded-full hover:bg-gray-600"
+                      onclick="getQuestion(this)"
+                    >
+                      Mày là con chat ngu. Cho tao hỏi địa chỉ nhà mày ở đâu?
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  class="flex items-center justify-center text-gray-400 hover:text-gray-600 attach-btn"
+                >
+                  <i class="fa-solid fa-file-circle-question"></i>
+                </button>
+              </div>
+              <div class="flex-grow ml-4">
+                <div class="relative w-full">
+                  <input
+                    type="text"
+                    class="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10"
+                    id="question-input"
+                    placeholder="Nhập câu hỏi"
+                  />
+                  {% comment %}
+                  <button
+                    class="absolute flex items-center justify-center h-full w-12 right-0 top-0 text-gray-400 hover:text-gray-600 icon-btn beta"
+                  >
+                    <svg
+                      class="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                  </button>
+                  {% endcomment %}
+                </div>
+              </div>
+              <div class="ml-4">
+                <button
+                  class="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white px-4 py-1 flex-shrink-0 send-btn"
+                >
+                  <span>Send</span>
+                  <span class="ml-2">
+                    <svg
+                      class="w-4 h-4 transform rotate-45 -mt-px"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                      ></path>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% comment %} flash message {% endcomment %}
+    <div class="absolute mt-4 mr-6 right-0 top-0 flash-message"></div>
+    <input type="hidden" id="converid" />
+  </body>
+</html>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    resetChat();
+    {% for message in messages %}
+      flashMessage('{{message.tags}}', '{{message}}')
+    {% endfor%}
+  });
+  const quesButton = document.querySelector(".send-btn");
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        // Does this cookie string begin with the name we want?
+        if (cookie.substring(0, name.length + 1) === name + "=") {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  const csrftoken = getCookie("csrftoken");
+  console.log(csrftoken);
+
+  async function getAnswer(question) {
+    // Define the API URL
+    const apiUrl = "http://127.0.0.1:8000/engine/chat/";
+    const data = {
+      question: question,
+    };
+
+    const requestOptions = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken,
+      },
+      body: JSON.stringify(data),
+    };
+
+    var answer, references;
+    await fetch(apiUrl, requestOptions)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        console.log(data);
+        console.log(data.response);
+        console.log(data.references);
+        answer = data.response;
+        references = data.references;
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        answer = "Có lỗi trong quá trình xử lý!";
+      });
+
+    return { answer: answer, references: references };
+  }
+
+  function addToBox(name, content, references) {
+    var box = document.querySelector(".conversation-message-list");
+    var loader = `<div class="loader"></div>`;
+
+    // Check references
+    let ref_element = "";
+    if (references) {
+      for (let i = 0; i < references.length; i++) {
+        file_name = references[i].fileName ? references[i].fileName : "";
+        // Use template strings to concatenate the values
+        ref_element += `<button class="text-faq-dark-purple font-bold text-left pl-2 pb-5 pt-5 text-faq-body cursor-pointer flex justify-between w-full active:bg-faq-light-pink  accordion hover:text-faq-grayish-blue">
+                          ${`Tài liệu tham khảo ${i + 1}`}
+                          <img
+                              class="h-5 w-5 text-slate-800 block plus"
+                              src="{% static 'images/add.png' %}"
+                          />
+                          <img
+                              class="h-5 w-5 text-slate-800 hidden minus"
+                              src="{% static 'images/documents.png' %}"
+                          />
+                        </button>
+                        <div class="panel hidden">
+                          <a target="_blank" href="{% static 'documents/'%}${file_name}" class="inline-block px-4 pb-4">${
+          file_name ? "Nguồn: " : ""
+        }<span class="text-blue-500 hover:text-red-600">${
+          file_name ? file_name : ""
+        }</span></a>
+                          <p class=" overflow-hidden bg-faq-light-pink pl-4 pr-4 pb-4 pt-0  text-faq-grayish-blue">
+                            ${references[i].content}
+                          </p>
+                        </div>
+                        <hr class="bg-faq-grayish-blue">`;
+      }
+    }
+
+    if (name == "ai") {
+      const loader =
+        document.querySelector(".conversation-message-list .loader") || null;
+      if (loader) {
+        loader.remove();
+      }
+      var myRandomId = generateRandomId();
+      var element = `<div
+                            class="col-start-1 col-end-8 p-3 rounded-lg conversation-message-box ai-box"
+                          >
+                            <div class="flex flex-row">
+                              <div
+                                class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0"
+                              >
+                                <i class="fa-solid fa-robot"></i>
+                              </div>
+                              <div
+                                class="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl"
+                              >
+                                <div>
+                                  ${content}
+                                </div>
+                                <div>
+
+                                  ${references ? ref_element : ""}
+
+                                </div>
+                              </div>
+                            </div>
+                          </div>`;
+      box.innerHTML += element;
+      addReferenceEffect();
+    } else {
+      var element = `<div
+                            class="col-start-6 col-end-13 p-3 rounded-lg conversation-message-box user-box"
+                          >
+                            <div
+                              class="flex justify-start flex-row-reverse"
+                            >
+                              <div
+                                class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0"
+                              >
+                                U
+                              </div>
+                              <div
+                                class="relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl"
+                              >
+                                <div>${content}</div>
+                              </div>
+                            </div>
+                          </div>`;
+      box.innerHTML += element;
+      box.innerHTML += loader;
+    }
+    scrollToBottom();
+  }
+
+  quesButton.addEventListener("click", async function () {
+    var question_element = document.querySelector("#question-input");
+    var question = document.querySelector("#question-input").value;
+
+    const loader =
+      document.querySelector(".conversation-message-list .loader") || null;
+    if (loader) {
+      flashMessage(
+        "danger",
+        "Hệ thống đang trả lời, không thể gửi thêm câu hỏi"
+      );
+      return;
+    }
+
+    if (question != "") {
+      // Xử lý thêm câu hỏi
+      addToBox("user", question);
+      question_element.value = "";
+
+      // Xử lý thêm trả lời
+      var { answer, references } = await getAnswer(question);
+      addToBox("ai", answer, references);
+
+      // Save chat
+      addNewConver(question);
+      saveChat(question, answer, references);
+    }
+  });
+
+  // Add event click enter on keyboard
+  var input = document.getElementById("question-input");
+  input.addEventListener("keypress", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      quesButton.click();
+    }
+  });
+
+  function scrollToBottom() {
+    var layout = document.getElementsByClassName(
+      "conversation-message-layout"
+    )[0];
+    var message_frame = document.getElementsByClassName(
+      "conversation-message-list"
+    )[0];
+    layout.scrollTop = message_frame.offsetHeight;
+  }
+
+  function flashMessage(type, content) {
+    var color = {
+      success: "from-green-500 to-green-400",
+      danger: "from-red-500 to-red-400",
+      warning: "from-yellow-500 to-yellow-300",
+    };
+
+    var result = document.createElement("div");
+    result.innerHTML = `<div
+                          class="flex bg-white flex-row shadow-md border border-gray-100 rounded-lg overflow-hidden mt-2"
+                        >
+                          <div
+                            class="flex w-3 bg-gradient-to-t ${color[type]}"
+                          ></div>
+                          <div class="flex-1 p-3">
+                            <h1 class="md:text-xl text-gray-600">Thông báo</h1>
+                            <p class="text-black-400 text-xs md:text-sm font-light">
+                              ${content}
+                            </p>
+                          </div>
+
+                        </div>`;
+
+    document.querySelector(".flash-message").appendChild(result);
+    setTimeout(() => {
+      result.remove();
+    }, 3000);
+  }
+
+  var elementsArray = document.querySelectorAll(".beta");
+  elementsArray.forEach(function (elem) {
+    elem.addEventListener("click", function () {
+      console.log("beta");
+      flashMessage("warning", "Chức năng đang trong giai đoạn thử nghiệm");
+    });
+  });
+</script>
+
+{% comment %} Expander {% endcomment %}
+<script>
+  function addReferenceEffect() {
+    var acc = document.querySelectorAll(".accordion");
+    var plusIcons = document.getElementsByClassName("plus");
+
+    for (let i = 0; i < acc.length; i++) {
+      acc[i].addEventListener("click", function () {
+        this.classList.toggle("active");
+
+        var panel = this.nextElementSibling;
+
+        if (panel.style.display === "block") {
+          panel.style.display = "none";
+        } else {
+          panel.style.display = "block";
+        }
+
+        // Hide all other panels and show their corresponding plus icons
+        for (let x = 0; x < acc.length; x++) {
+          if (x !== i) {
+            acc[x].classList.remove("active");
+            acc[x].nextElementSibling.style.display = "none";
+          }
+        }
+      });
+    }
+  }
+
+  function generateRandomId() {
+    const randomId = Math.random().toString(36).substr(2, 9);
+    return randomId;
+  }
+</script>
+
+{% comment %} Load history conversation {% endcomment %}
+<script>
+  var conversation_layout = document.querySelector('.conversation-message-list')
+  var conversations = JSON.parse(localStorage.getItem("conversations")) || []
+  var currentConver = document.getElementById("converid")
+  var layout_history = document.querySelector(".conversation-list")
+  var size = document.querySelector(".conversations-size")
+  var conversations_detail = JSON.parse(localStorage.getItem("conversations_detail")) || []
+
+  loadHistory()
+
+  function loadHistory() {
+
+    var html = ""
+    conversations.slice().reverse().forEach(conver =>{
+      html += `<div class="flex flex-row items-center">
+                <button
+                  class="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+                  onclick="loadChat('${conver.id}')"
+                >
+                  <div
+                    class="flex items-center justify-center h-8 w-8 bg-gray-200 rounded-full"
+                  >
+                    <i class="fa-solid fa-message"></i>
+                  </div>
+                  <div class="ml-2 text-sm font-semibold conversation-title">
+                    ${conver.title}
+                  </div>
+                </button>
+                <button
+                  class="ml-2 text-sm font-semibold text-red hover:bg-red-400 px-1 rounded-full"
+                  onclick="removeChat(this, '${conver.id}')"
+                >
+                  <i class="fa-solid fa-xmark text-red-600"></i>
+                </button>
+              </div>`
+    })
+
+    layout_history.innerHTML += html
+    size.innerText = conversations.length
+  }
+
+  function loadChat(id_conver="1") {
+
+    console.log(id_conver)
+    currentConver.innerText = id_conver
+    conversation_layout.innerHTML = ""
+    addToBox("ai", "Xin chào tôi là law chat - trợ lý ảo có thể giúp bạn giải đáp các câu hỏi liên quan đến pháp luật, các thông tin được trích xuất từ văn bản luật. Bạn cần tôi giúp gì nào?")
+
+    var filteredConversations = conversations_detail.filter(function(conversation) {
+      return conversation.id === id_conver;
+    });
+
+    filteredConversations.forEach(chat =>{
+      addToBox("user", chat['question'])
+      addToBox("ai", chat['answer'], chat['references'])
+    })
+
+  }
+
+  function saveChat(question, answer, ref) {
+
+    var newChat = {
+      "id": currentConver.innerText,
+      "question": question,
+      "answer": answer,
+      "references": ref
+    }
+    conversations_detail.push(newChat)
+    localStorage.setItem("conversations_detail", JSON.stringify(conversations_detail))
+  }
+
+  function addNewConver(question) {
+    if (currentConver.innerText == "") {
+      currentConver.innerText = generateRandomId()
+      var newButton = `<div class="flex flex-row items-center">
+                        <button
+                          class="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+                          onclick="loadChat('${currentConver.innerText}')"
+                        >
+                          <div
+                            class="flex items-center justify-center h-8 w-8 bg-gray-200 rounded-full"
+                          >
+                            <i class="fa-solid fa-message"></i>
+                          </div>
+                          <div class="ml-2 text-sm font-semibold conversation-title">
+                            ${question}
+                          </div>
+                        </button>
+                        <button
+                          class="ml-2 text-sm font-semibold text-red hover:bg-red-400 px-1 rounded-full"
+                          onclick="removeChat(this, '${currentConver.innerText}')"
+                        >
+                          <i class="fa-solid fa-xmark text-red-600"></i>
+                        </button>
+                      </div>`
+
+      layout_history.innerHTML = newButton + layout_history.innerHTML;
+
+      conversations.push({
+        "id": currentConver.innerText,
+        "title": question
+      })
+      size.innerText = conversations.length
+      localStorage.setItem("conversations", JSON.stringify(conversations))
+    }
+  }
+
+  function removeChat(event, id) {
+    console.log(event.parentElement)
+    console.log(id)
+    event.parentElement.remove()
+
+    conversations = conversations.filter(function(conversation) {
+      return conversation.id != id;
+    })
+
+    conversations_detail = conversations_detail.filter(function(conversation) {
+      return conversation.id != id;
+    });
+
+    size.innerText = conversations.length
+    localStorage.setItem("conversations", JSON.stringify(conversations))
+    localStorage.setItem("conversations_detail", JSON.stringify(conversations_detail))
+
+    flashMessage(
+      "success",
+      "Bạn vừa xóa lịch sử hội thoại thành công!"
+    );
+
+    if(currentConver.innerText == id) {
+      resetChat()
+    }
+  }
+
+  function resetChat() {
+    currentConver.innerText = ""
+    conversation_layout.innerHTML = ""
+    var content = "Xin chào tôi là law chat - trợ lý ảo có thể giúp bạn giải đáp các câu hỏi liên quan đến pháp luật, các thông tin được trích xuất từ văn bản luật. Bạn cần tôi giúp gì nào?"
+    var element = `<div
+                      class="col-start-1 col-end-8 p-3 rounded-lg conversation-message-box ai-box"
+                    >
+                      <div class="flex flex-row">
+                        <div
+                          class="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0"
+                        >
+                          <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div
+                          class="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl"
+                        >
+                          <div class="stream-content">
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>`;
+    conversation_layout.innerHTML += element
+
+    appendContent(0, content);
+
+  }
+
+  function appendContent(index, content) {
+    var streamIndex = document.querySelector(".stream-content")
+    if (index < content.split("").length) {
+        streamIndex.innerHTML += content[index];
+        setTimeout(function () {
+            appendContent(index + 1, content);
+        }, 20); // Adjust the delay in milliseconds as needed (0.1 seconds in this case)
+    }
+  }
+
+
+  {% comment %} var conversations = [
+    {
+      "id": "1",
+      "title": "Xin chào"
+    },
+    {
+      "id": "2",
+      "title": "Xin lỗi"
+    }
+  ]
+
+  {% comment %} var conversations_detail = [
+    {
+      "id": "1",
+      "question": "Bạn là ai?",
+      "answer": "Tôi là trợ lý ảo chuyên trả lời các câu hỏi về pháp luật",
+      "references": [
+        {
+          "score": 9,
+          "content": "ahihi",
+          "fileName": "luat-thuong-mai.pdf"
+        },
+        {
+          "score": 8,
+          "content": "ahuhu",
+          "fileName": "luat-thuong-mai.pdf"
+        }
+      ]
+    },
+    {
+      "id": "1",
+      "question": "Xin chào",
+      "answer": "Tôi là trợ lý ảo chuyên trả lời các câu hỏi về pháp luật",
+      "references": [
+        {
+          "score": 9,
+          "content": "ahihi",
+          "fileName": "luat-thuong-mai.pdf"
+        },
+        {
+          "score": 7,
+          "content": "ahuhu",
+          "fileName": "luat-thuong-mai.pdf"
+        }
+      ]
+    },
+  ] {% endcomment %}
+</script>
+
+<script>
+  var example = document.querySelector(".example");
+  var example_btn = document.querySelector(".attach-btn");
+  example_btn.addEventListener("click", function () {
+    example.classList.toggle("hidden");
+  });
+
+  function getQuestion(event) {
+    var question = event.innerText;
+    var question_element = document.querySelector("#question-input");
+
+    question_element.value = question;
+    example.classList.toggle("hidden");
+  }
+</script>
